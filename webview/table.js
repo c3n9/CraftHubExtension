@@ -29,3 +29,33 @@ document.getElementById('json-table').addEventListener('dblclick', (e) => {
     if (ev.key === 'Escape') { td.textContent = original; }
   });
 });
+
+
+// диалог для добавления столбца
+const dialog = document.getElementById('add-col-dialog');
+const colNameInput = document.getElementById('col-name');
+const colTypeSelect = document.getElementById('col-type');
+
+document.getElementById('add-column').addEventListener('click', () => {
+  colNameInput.value = '';
+  dialog.showModal();
+});
+
+document.getElementById('btn-cancel').addEventListener('click', () => {
+  dialog.close();
+});
+
+dialog.addEventListener('close', () => {
+  if(dialog.returnValue !== 'default') return;
+  const name = colNameInput.value.trim();
+  if(!name) return;
+  vscode.postMessage({
+    type: 'addColumn',
+    name,
+    dataType: colTypeSelect.value
+  });
+});
+
+document.getElementById('add-row').addEventListener('click', () => {
+  vscode.postMessage({ type: 'addRow' });
+});
