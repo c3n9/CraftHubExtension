@@ -41,14 +41,10 @@ document.getElementById('add-column').addEventListener('click', () => {
   dialog.showModal();
 });
 
-document.getElementById('btn-cancel').addEventListener('click', () => {
-  dialog.close();
-});
-
 dialog.addEventListener('close', () => {
-  if(dialog.returnValue !== 'default') return;
+  if (dialog.returnValue !== 'default') return;
   const name = colNameInput.value.trim();
-  if(!name) return;
+  if (!name) return;
   vscode.postMessage({
     type: 'addColumn',
     name,
@@ -56,6 +52,29 @@ dialog.addEventListener('close', () => {
   });
 });
 
+document.getElementById('btn-cancel-add-col').addEventListener('click', () => {
+  dialog.close();
+});
+
 document.getElementById('add-row').addEventListener('click', () => {
   vscode.postMessage({ type: 'addRow' });
+});
+
+const deleteDialog = document.getElementById('delete-col-dialog');
+let colToDelete = '';
+
+document.getElementById('json-table').addEventListener('click', (e) => {
+  const btn = e.target.closest('.delete-column');
+  if (!btn) return;
+  colToDelete = btn.dataset.col;
+  deleteDialog.showModal();
+});
+
+deleteDialog.addEventListener('close', () => {
+  if (deleteDialog.returnValue !== 'default') return;
+  vscode.postMessage({ type: 'deleteColumn', name: colToDelete });
+});
+
+document.getElementById('btn-cancel-delete-col').addEventListener('click', () => {
+  deleteDialog.close();
 });

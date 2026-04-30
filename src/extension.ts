@@ -74,6 +74,17 @@ class JsonTableEditorProvider implements vscode.CustomTextEditorProvider {
 				edit.replace(document.uri, new vscode.Range(0, 0, document.lineCount, 0), JSON.stringify(data, null, 2));
 				await vscode.workspace.applyEdit(edit);
 			}
+
+			if (msg.type === 'deleteColumn') {
+				const data = JSON.parse(document.getText());
+				for (const row of data) {
+					delete row[msg.name];
+				}
+				const edit = new vscode.WorkspaceEdit();
+				edit.replace(document.uri, new vscode.Range(0, 0, document.lineCount, 0), JSON.stringify(data, null, 2));
+				await vscode.workspace.applyEdit(edit);
+			}
+
 		});
 
 		const updateWebview = () => {
@@ -111,9 +122,19 @@ class JsonTableEditorProvider implements vscode.CustomTextEditorProvider {
 
 		const columns = Object.keys(data[0]);
 
-		const headers = columns.map(c => `<th>${c}</th>`).join('');
+		const headers = columns.map(c =>
+			`<th>
+				${c}
+				<button class="delete-column" data-col="${c}">x</button>
+			</th>`)
+			.join('');
 		const rows = data.map((row, rowIndex) =>
-			`<tr>${columns.map(c => `<td data-row="${rowIndex}" data-col="${c}">${row[c] ?? ''}</td>`).join('')}</tr>`
+			`<tr>${columns.map(c =>
+				`<td data-row="${rowIndex}" data-col="${c}">
+					${row[c] ?? ''}
+				</td>`)
+				.join('')}
+			</tr>`
 		).join('');
 
 		const htmlPath = path.join(this.context.extensionPath, 'webview', 'index.html');

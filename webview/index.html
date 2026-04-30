@@ -1,19 +1,24 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src {{CSP_SOURCE}}; script-src {{CSP_SOURCE}};">
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'none'; style-src {{CSP_SOURCE}}; script-src {{CSP_SOURCE}};">
   <link rel="stylesheet" href="{{STYLE_URI}}">
   <title>JSON Table Editor</title>
 </head>
+
 <body>
   <div class="toolbar">
     <button id="add-column">Add Column</button>
     <button id="add-row">Add Row</button>
   </div>
   <table id="json-table">
-    <thead><tr>{{HEADERS}}</tr></thead>
+    <thead>
+      <tr>{{HEADERS}}</tr>
+    </thead>
     <tbody>{{ROWS}}</tbody>
   </table>
 
@@ -32,11 +37,22 @@
       </label>
       <div class="dialog-buttons">
         <button type="submit" value="default">Add</button>
-        <button type="button" id="btn-cancel">Cancel</button>
+        <button type="button" id="btn-cancel-add-col">Cancel</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="delete-col-dialog">
+    <form method="dialog">
+      <h3>Do you want delete this column?</h3>
+      <div class="dialog-buttons">
+        <button type="submit" value="default">Yes</button>
+        <button type="button" id="btn-cancel-delete-col">Cancel</button>
       </div>
     </form>
   </dialog>
 
   <script src="{{SCRIPT_URI}}"></script>
 </body>
+
 </html>
