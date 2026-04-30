@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src {{CSP_SOURCE}}; script-src {{CSP_SOURCE}};">
+  <link rel="stylesheet" href="{{STYLE_URI}}">
+  <title>JSON Table Editor</title>
+</head>
+<body>
+  <table id="json-table">
+    <thead><tr>{{HEADERS}}</tr></thead>
+    <tbody>{{ROWS}}</tbody>
+  </table>
+  <script src="{{SCRIPT_URI}}"></script>
+</body>
+</html>

@@ -1,0 +1,39 @@
+body {
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+  color: var(--vscode-foreground);
+  background: var(--vscode-editor-background);
+  padding: 12px;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+th, td {
+  border: 1px solid var(--vscode-panel-border, #444);
+  padding: 6px 10px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+th {
+  background: var(--vscode-editorGroupHeader-tabsBackground);
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+}
+
+tr:nth-child(even) td {
+  background: var(--vscode-list-hoverBackground);
+}
+
+td input {
+  background: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  border: 1px solid var(--vscode-focusBorder);
+  padding: 2px 4px;
+  font-size: inherit;
+  font-family: inherit;
+}
