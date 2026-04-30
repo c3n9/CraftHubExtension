@@ -3,14 +3,27 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 export function activate(context: vscode.ExtensionContext) {
-	context.subscriptions.push(
-		vscode.window.registerCustomEditorProvider(
-			'jsonTableEditor.editor',
-			new JsonTableEditorProvider(context),
-			{ supportsMultipleEditorsPerDocument: false }
-		)
-	);
+    context.subscriptions.push(
+        vscode.window.registerCustomEditorProvider(
+            'jsonTableEditor.editor',
+            new JsonTableEditorProvider(context),
+            { supportsMultipleEditorsPerDocument: false }
+        )
+    );
+	// иконка для переключения между редактором и обычным видом
+    context.subscriptions.push(
+        vscode.commands.registerCommand('crafthub.toggleView', async () => {
+            const uri = vscode.window.tabGroups.activeTabGroup.activeTab?.input;
+
+            if (uri instanceof vscode.TabInputCustom) {
+                await vscode.commands.executeCommand('workbench.action.reopenTextEditor');
+            } else if (uri instanceof vscode.TabInputText) {
+                await vscode.commands.executeCommand('vscode.openWith', uri.uri, 'jsonTableEditor.editor');
+            }
+        })
+    );
 }
+
 
 class JsonTableEditorProvider implements vscode.CustomTextEditorProvider {
 	constructor(private readonly context: vscode.ExtensionContext) { }

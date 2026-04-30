@@ -23,7 +23,23 @@
         ],
         "priority": "default"
       }
-    ]
+    ],
+    "commands": [
+      {
+        "command": "crafthub.toggleView",
+        "title": "Toggle Table / Text View",
+        "icon": "./images/craftHub.svg"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "crafthub.toggleView",
+          "when": "resourceExtname == .json",
+          "group": "navigation"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
