@@ -124,21 +124,26 @@ function clearSelection() {
 
 // --- контекстное меню ---
 const ctxMenu = document.getElementById('ctx-menu');
-let clipboard = [];
 
 document.querySelector('#json-table tbody').addEventListener('contextmenu', (e) => {
   e.preventDefault();
   e.stopPropagation();
   const tr = e.target.closest('tr');
-  if (!tr) return;
 
-  // если кликнули на невыделенную строку — выделяем только её
-  const idx = Number(tr.dataset.row);
-  if (!selectedRows.has(idx)) {
-    clearSelection();
-    selectedRows.add(idx);
-    tr.classList.add('selected');
+  const hasRow = tr && tr.dataset.row !== undefined;
+
+  if (hasRow) {
+    const idx = Number(tr.dataset.row);
+    if (!selectedRows.has(idx)) {
+      clearSelection();
+      selectedRows.add(idx);
+      tr.classList.add('selected');
+    }
   }
+
+  ctxMenu.querySelectorAll('button:not([data-action="paste"]), hr').forEach(el => {
+    el.style.display = hasRow ? '' : 'none';
+  });
 
   ctxMenu.style.left = e.clientX + 'px';
   ctxMenu.style.top = e.clientY + 'px';
@@ -167,7 +172,7 @@ ctxMenu.addEventListener('click', (e) => {
   } else if (action === 'copy-objects') {
     vscode.postMessage({ type: 'getRows', rows, format: 'objects' });
   } else if (action === 'paste') {
-    vscode.postMessage({ type: 'pasteRows', after: Math.max(...selectedRows), clipboard });
+    vscode.postMessage({ type: 'pasteRows', after: Math.max(...selectedRows) });
   } else if (action === 'cut') {
     vscode.postMessage({ type: 'cutRows', rows });
   }
@@ -180,15 +185,12 @@ window.addEventListener('message', (e) => {
   const msg = e.data;
   if (msg.type === 'copyToClipboard') {
     navigator.clipboard.writeText(msg.text);
-    clipboard = msg.rows;
   }
 });
 
 // --- клавиатурные сокращения ---
 
 document.addEventListener('keydown', (e) => {
-  console.log('key:', e.code, 'ctrl:', e.ctrlKey);
-
   if (!e.ctrlKey && !e.metaKey) return;
   if (selectedRows.size === 0) return;
 
@@ -205,7 +207,6 @@ document.addEventListener('keydown', (e) => {
     vscode.postMessage({ type: 'duplicateRows', rows, mode: 'after' });
   } else if (e.code === 'KeyV') {
     e.preventDefault();
-    if (clipboard.length === 0) return;
-    vscode.postMessage({ type: 'pasteRows', after: Math.max(...selectedRows), clipboard });
+    vscode.postMessage({ type: 'pasteRows', after: Math.max(...selectedRows) });
   }
 });
