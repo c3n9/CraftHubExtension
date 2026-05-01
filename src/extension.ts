@@ -46,10 +46,12 @@ class JsonTableEditorProvider implements vscode.CustomTextEditorProvider {
 		);
 		let knownColumns: string[] = [];
 
+		const allKeys = (arr: any[]) => [...new Set(arr.flatMap(r => Object.keys(r)))];
+
 		const parseColumns = (text: string) => {
 			try {
 				const d = JSON.parse(text);
-				if (Array.isArray(d) && d.length > 0) knownColumns = Object.keys(d[0]);
+				if (Array.isArray(d) && d.length > 0) knownColumns = allKeys(d);
 			} catch {}
 		};
 
@@ -134,6 +136,13 @@ class JsonTableEditorProvider implements vscode.CustomTextEditorProvider {
 				if (this.clipboard.length === 0) return;
 				const data = JSON.parse(document.getText());
 				const toPaste = this.clipboard.map((r: unknown) => ({ ...(r as object) }));
+
+				const existingKeys = new Set<string>(data.length > 0 ? allKeys(data) : []);
+				const newKeys = [...new Set(toPaste.flatMap(r => Object.keys(r as object)))].filter(k => !existingKeys.has(k));
+				for (const key of newKeys) {
+					for (const row of data) row[key] = '';
+				}
+
 				const after = Number.isFinite(msg.after) ? msg.after : data.length - 1;
 				data.splice(after + 1, 0, ...toPaste);
 				const edit = new vscode.WorkspaceEdit();
@@ -186,7 +195,7 @@ class JsonTableEditorProvider implements vscode.CustomTextEditorProvider {
 			return `<html><body><p style="color:red">Invalid JSON</p></body></html>`;
 		}
 
-		const columns = data.length > 0 ? Object.keys(data[0]) : fallbackColumns;
+		const columns = data.length > 0 ? [...new Set(data.flatMap((r: any) => Object.keys(r)))] : fallbackColumns;
 
 
 		const headers = columns.map(c =>
