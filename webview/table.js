@@ -17,8 +17,7 @@ document.getElementById('json-table').addEventListener('dblclick', (e) => {
     td.textContent = value;
     vscode.postMessage({
       type: 'edit',
-      row: Number(td.dataset.row),
-      col: td.dataset.col,
+      row: Number(td.closest('tr').dataset.row), col: td.dataset.col,
       value
     });
   };
@@ -77,4 +76,136 @@ deleteDialog.addEventListener('close', () => {
 
 document.getElementById('btn-cancel-delete-col').addEventListener('click', () => {
   deleteDialog.close();
+});
+
+// --- выделение строк ---
+let selectedRows = new Set();
+
+document.querySelector('#json-table tbody').addEventListener('click', (e) => {
+  const tr = e.target.closest('tr');
+  if (!tr) return;
+
+  const idx = Number(tr.dataset.row);
+
+  if (e.ctrlKey || e.metaKey) {
+    // Ctrl+клик — переключить одну строку
+    if (selectedRows.has(idx)) {
+      selectedRows.delete(idx);
+      tr.classList.remove('selected');
+    } else {
+      selectedRows.add(idx);
+      tr.classList.add('selected');
+    }
+  } else if (e.shiftKey && selectedRows.size > 0) {
+    // Shift+клик — выделить диапазон от последней до текущей
+    const last = Math.max(...selectedRows);
+    const from = Math.min(last, idx);
+    const to = Math.max(last, idx);
+    document.querySelectorAll('#json-table tbody tr').forEach(row => {
+      const i = Number(row.dataset.row);
+      if (i >= from && i <= to) {
+        selectedRows.add(i);
+        row.classList.add('selected');
+      }
+    });
+  } else {
+    // Обычный клик — выделить только эту строку
+    clearSelection();
+    selectedRows.add(idx);
+    tr.classList.add('selected');
+  }
+});
+
+function clearSelection() {
+  selectedRows.clear();
+  document.querySelectorAll('#json-table tbody tr.selected')
+    .forEach(tr => tr.classList.remove('selected'));
+}
+
+// --- контекстное меню ---
+const ctxMenu = document.getElementById('ctx-menu');
+let clipboard = [];
+
+document.querySelector('#json-table tbody').addEventListener('contextmenu', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  const tr = e.target.closest('tr');
+  if (!tr) return;
+
+  // если кликнули на невыделенную строку — выделяем только её
+  const idx = Number(tr.dataset.row);
+  if (!selectedRows.has(idx)) {
+    clearSelection();
+    selectedRows.add(idx);
+    tr.classList.add('selected');
+  }
+
+  ctxMenu.style.left = e.clientX + 'px';
+  ctxMenu.style.top = e.clientY + 'px';
+  ctxMenu.hidden = false;
+});
+
+document.addEventListener('click', () => { ctxMenu.hidden = true; });
+document.addEventListener('contextmenu', (e) => {
+  if (!e.target.closest('#ctx-menu')) ctxMenu.hidden = true;
+});
+
+ctxMenu.addEventListener('click', (e) => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  const action = btn.dataset.action;
+  const rows = [...selectedRows].sort((a, b) => a - b);
+
+  if (action === 'delete') {
+    vscode.postMessage({ type: 'deleteRows', rows });
+  } else if (action === 'duplicate-after') {
+    vscode.postMessage({ type: 'duplicateRows', rows, mode: 'after' });
+  } else if (action === 'duplicate-end') {
+    vscode.postMessage({ type: 'duplicateRows', rows, mode: 'end' });
+  } else if (action === 'copy-array') {
+    vscode.postMessage({ type: 'getRows', rows, format: 'array' });
+  } else if (action === 'copy-objects') {
+    vscode.postMessage({ type: 'getRows', rows, format: 'objects' });
+  } else if (action === 'paste') {
+    vscode.postMessage({ type: 'pasteRows', after: Math.max(...selectedRows), clipboard });
+  } else if (action === 'cut') {
+    vscode.postMessage({ type: 'cutRows', rows });
+  }
+
+
+  ctxMenu.hidden = true;
+});
+
+window.addEventListener('message', (e) => {
+  const msg = e.data;
+  if (msg.type === 'copyToClipboard') {
+    navigator.clipboard.writeText(msg.text);
+    clipboard = msg.rows;
+  }
+});
+
+// --- клавиатурные сокращения ---
+
+document.addEventListener('keydown', (e) => {
+  console.log('key:', e.code, 'ctrl:', e.ctrlKey);
+
+  if (!e.ctrlKey && !e.metaKey) return;
+  if (selectedRows.size === 0) return;
+
+  const rows = [...selectedRows].sort((a, b) => a - b);
+
+  if (e.code === 'KeyC') {
+    e.preventDefault();
+    vscode.postMessage({ type: 'getRows', rows, format: 'array' });
+  } else if (e.code === 'KeyX') {
+    e.preventDefault();
+    vscode.postMessage({ type: 'cutRows', rows });
+  } else if (e.code === 'KeyD') {
+    e.preventDefault();
+    vscode.postMessage({ type: 'duplicateRows', rows, mode: 'after' });
+  } else if (e.code === 'KeyV') {
+    e.preventDefault();
+    if (clipboard.length === 0) return;
+    vscode.postMessage({ type: 'pasteRows', after: Math.max(...selectedRows), clipboard });
+  }
 });

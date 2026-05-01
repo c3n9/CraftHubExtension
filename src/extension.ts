@@ -85,6 +85,59 @@ class JsonTableEditorProvider implements vscode.CustomTextEditorProvider {
 				await vscode.workspace.applyEdit(edit);
 			}
 
+			if (msg.type === 'deleteRows') {
+				const data = JSON.parse(document.getText());
+				const toDelete = new Set(msg.rows as number[]);
+				const newData = data.filter((_: unknown, i: number) => !toDelete.has(i));
+				const edit = new vscode.WorkspaceEdit();
+				edit.replace(document.uri, new vscode.Range(0, 0, document.lineCount, 0), JSON.stringify(newData, null, 2));
+				await vscode.workspace.applyEdit(edit);
+			}
+
+			if (msg.type === 'duplicateRows') {
+				const data = JSON.parse(document.getText());
+				const copies = (msg.rows as number[]).map((i: number) => ({ ...data[i] }));
+				if (msg.mode === 'end') {
+					data.push(...copies);
+				} else {
+					const insertAfter = Math.max(...msg.rows as number[]);
+					data.splice(insertAfter + 1, 0, ...copies);
+				}
+				const edit = new vscode.WorkspaceEdit();
+				edit.replace(document.uri, new vscode.Range(0, 0, document.lineCount, 0), JSON.stringify(data, null, 2));
+				await vscode.workspace.applyEdit(edit);
+			}
+
+			if (msg.type === 'getRows') {
+				const data = JSON.parse(document.getText());
+				const selected = (msg.rows as number[]).map((i: number) => data[i]);
+				const text = msg.format === 'array'
+					? JSON.stringify(selected, null, 2)
+					: selected.map((r: unknown) => JSON.stringify(r, null, 2)).join(',\n');
+				webviewPanel.webview.postMessage({ type: 'copyToClipboard', text, rows: selected });
+			}
+
+			if (msg.type === 'pasteRows') {
+				const data = JSON.parse(document.getText());
+				const toPaste = (msg.clipboard as unknown[]).map((r: unknown) => ({ ...(r as object) }));
+				data.splice(msg.after + 1, 0, ...toPaste);
+				const edit = new vscode.WorkspaceEdit();
+				edit.replace(document.uri, new vscode.Range(0, 0, document.lineCount, 0), JSON.stringify(data, null, 2));
+				await vscode.workspace.applyEdit(edit);
+			}
+
+			if (msg.type === 'cutRows') {
+				const data = JSON.parse(document.getText());
+				const selected = (msg.rows as number[]).map((i: number) => data[i]);
+				webviewPanel.webview.postMessage({ type: 'copyToClipboard', text: JSON.stringify(selected, null, 2), rows: selected });
+				const toDelete = new Set(msg.rows as number[]);
+				const newData = data.filter((_: unknown, i: number) => !toDelete.has(i));
+				const edit = new vscode.WorkspaceEdit();
+				edit.replace(document.uri, new vscode.Range(0, 0, document.lineCount, 0), JSON.stringify(newData, null, 2));
+				await vscode.workspace.applyEdit(edit);
+			}
+
+
 		});
 
 		const updateWebview = () => {
@@ -129,13 +182,14 @@ class JsonTableEditorProvider implements vscode.CustomTextEditorProvider {
 			</th>`)
 			.join('');
 		const rows = data.map((row, rowIndex) =>
-			`<tr>${columns.map(c =>
-				`<td data-row="${rowIndex}" data-col="${c}">
-					${row[c] ?? ''}
-				</td>`)
+			`<tr data-row="${rowIndex}">${columns.map(c =>
+				`<td data-col="${c}">
+            		${row[c] ?? ''}
+       			</td>`)
 				.join('')}
-			</tr>`
+    		</tr>`
 		).join('');
+
 
 		const htmlPath = path.join(this.context.extensionPath, 'webview', 'index.html');
 		let html = fs.readFileSync(htmlPath, 'utf8');

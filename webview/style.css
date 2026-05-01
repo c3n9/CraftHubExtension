@@ -11,7 +11,8 @@ table {
   width: 100%;
 }
 
-th, td {
+th,
+td {
   border: 1px solid var(--vscode-panel-border, #444);
   padding: 6px 10px;
   text-align: left;
@@ -82,7 +83,8 @@ dialog label {
   font-size: inherit;
 }
 
-dialog input, dialog select {
+dialog input,
+dialog select {
   background: var(--vscode-input-background);
   color: var(--vscode-input-foreground);
   border: 1px solid var(--vscode-input-border, #444);
@@ -112,3 +114,57 @@ dialog input, dialog select {
   background: var(--vscode-button-hoverBackground);
 }
 
+tbody tr {
+  cursor: pointer;
+  user-select: none;
+}
+
+tbody tr.selected td {
+  background: var(--vscode-list-activeSelectionBackground);
+  color: var(--vscode-list-activeSelectionForeground);
+}
+
+.ctx-menu {
+  position: fixed;
+  background: var(--vscode-menu-background);
+  color: var(--vscode-menu-foreground);
+  border: 1px solid var(--vscode-menu-border, #444);
+  padding: 4px 0;
+  min-width: 200px;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.ctx-menu button {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  width: 100%;
+  background: none;
+  border: none;
+  color: inherit;
+  padding: 6px 16px;
+  text-align: left;
+  cursor: pointer;
+  font-size: inherit;
+  font-family: inherit;
+}
+
+.shortcut {
+  color: var(--vscode-descriptionForeground);
+  font-size: 0.85em;
+  opacity: 0.7;
+}
+
+
+.ctx-menu button:hover {
+  background: var(--vscode-menu-selectionBackground);
+  color: var(--vscode-menu-selectionForeground);
+}
+
+.ctx-menu hr {
+  border: none;
+  border-top: 1px solid var(--vscode-menu-separatorBackground, #444);
+  margin: 4px 0;
+}

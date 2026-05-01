@@ -52,6 +52,18 @@
     </form>
   </dialog>
 
+  <div id="ctx-menu" class="ctx-menu" hidden>
+    <button data-action="delete">Удалить</button>
+    <button data-action="cut">Вырезать <span class="shortcut">Ctrl+X</span></button>
+    <button data-action="duplicate-after">Дублировать после <span class="shortcut">Ctrl+D</span></button>
+    <button data-action="duplicate-end">Дублировать в конец</button>
+    <hr>
+    <button data-action="copy-array">Копировать как массив <span class="shortcut">Ctrl+C</span></button>
+    <button data-action="copy-objects">Копировать как объекты</button>
+    <hr>
+    <button data-action="paste">Вставить <span class="shortcut">Ctrl+V</span></button>
+  </div>
+
   <script src="{{SCRIPT_URI}}"></script>
 </body>
 
