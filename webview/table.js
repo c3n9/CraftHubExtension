@@ -196,7 +196,7 @@ document.addEventListener('keydown', (e) => {
 
   if (e.code === 'KeyC') {
     e.preventDefault();
-    vscode.postMessage({ type: 'getRows', rows, format: 'array' });
+    vscode.postMessage({ type: 'getRows', rows, format: 'objects' });
   } else if (e.code === 'KeyX') {
     e.preventDefault();
     vscode.postMessage({ type: 'cutRows', rows });
