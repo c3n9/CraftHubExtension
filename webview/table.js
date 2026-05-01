@@ -4,17 +4,24 @@ document.getElementById('json-table').addEventListener('dblclick', (e) => {
   const td = e.target.closest('td');
   if (!td) return;
 
-  const original = td.textContent;
-  const input = document.createElement('input');
-  input.value = original;
-  input.style.width = '100%';
-  td.textContent = '';
-  td.appendChild(input);
-  input.focus();
+  const inner = td.querySelector('.cell-inner');
+  const original = (inner ? inner.textContent : td.textContent) ?? '';
+
+  const textarea = document.createElement('textarea');
+  textarea.value = original;
+  td.innerHTML = '';
+  td.appendChild(textarea);
+  textarea.style.height = Math.max(textarea.scrollHeight, 24) + 'px';
+  textarea.focus();
+  textarea.select();
+
+  let cancelled = false;
 
   const commit = () => {
-    const value = input.value;
-    td.textContent = value;
+    if (cancelled) return;
+    const value = textarea.value;
+    td.innerHTML = `<div class="cell-inner"></div>`;
+    td.querySelector('.cell-inner').textContent = value;
     vscode.postMessage({
       type: 'edit',
       row: Number(td.closest('tr').dataset.row), col: td.dataset.col,
@@ -22,10 +29,20 @@ document.getElementById('json-table').addEventListener('dblclick', (e) => {
     });
   };
 
-  input.addEventListener('blur', commit);
-  input.addEventListener('keydown', (ev) => {
-    if (ev.key === 'Enter') input.blur();
-    if (ev.key === 'Escape') { td.textContent = original; }
+  textarea.addEventListener('blur', commit);
+  textarea.addEventListener('input', () => {
+    textarea.style.height = 'auto';
+    textarea.style.height = textarea.scrollHeight + 'px';
+  });
+  textarea.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Enter' && !ev.shiftKey) { ev.preventDefault(); textarea.blur(); }
+    if (ev.key === 'Escape') {
+      cancelled = true;
+      td.innerHTML = `<div class="cell-inner"></div>`;
+      td.querySelector('.cell-inner').textContent = original;
+    }
+    textarea.style.height = 'auto';
+    textarea.style.height = textarea.scrollHeight + 'px';
   });
 });
 
@@ -215,8 +232,8 @@ document.addEventListener('keydown', (e) => {
 // search
 
 function clearHighlights() {
-  document.querySelectorAll('#json-table td').forEach(td => {
-    td.textContent = td.textContent;
+  document.querySelectorAll('#json-table td .cell-inner').forEach(inner => {
+    inner.textContent = inner.textContent;
   });
 }
 
@@ -232,9 +249,9 @@ function applySearch(query) {
   const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const regex = new RegExp(`(${escaped})`, 'gi');
 
-  document.querySelectorAll('#json-table td').forEach(td => {
-    if (!regex.test(td.textContent)) return;
-    td.innerHTML = td.textContent.replace(regex, '<mark>$1</mark>');
+  document.querySelectorAll('#json-table td .cell-inner').forEach(inner => {
+    if (!regex.test(inner.textContent)) return;
+    inner.innerHTML = inner.textContent.replace(regex, '<mark>$1</mark>');
   });
 
   matches = [...document.querySelectorAll('#json-table td mark')];

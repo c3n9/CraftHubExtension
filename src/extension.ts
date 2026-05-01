@@ -201,13 +201,13 @@ class JsonTableEditorProvider implements vscode.CustomTextEditorProvider {
 		const headers = columns.map(c =>
 			`<th>
 				${c}
-				<button class="delete-column" data-col="${c}">x</button>
+				<button class="delete-column" data-col="${c}">✕</button>
 			</th>`)
 			.join('');
 		const rows = data.length > 0
 			? data.map((row, rowIndex) =>
 				`<tr data-row="${rowIndex}">${columns.map(c =>
-					`<td data-col="${c}">${row[c] ?? ''}</td>`)
+					`<td data-col="${c}"><div class="cell-inner">${row[c] ?? ''}</div></td>`)
 					.join('')}</tr>`
 			).join('')
 			: `<tr class="empty-placeholder"><td colspan="${columns.length || 1}"></td></tr>`;

@@ -17,12 +17,14 @@
     <input id="search-input" type="text" placeholder="Search..." />
     <span id="search-count"></span>
   </div>
-  <table id="json-table">
-    <thead>
-      <tr>{{HEADERS}}</tr>
-    </thead>
-    <tbody>{{ROWS}}</tbody>
-  </table>
+  <div class="table-wrap">
+    <table id="json-table">
+      <thead>
+        <tr>{{HEADERS}}</tr>
+      </thead>
+      <tbody>{{ROWS}}</tbody>
+    </table>
+  </div>
 
   <dialog id="add-col-dialog">
     <form method="dialog">
