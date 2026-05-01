@@ -173,3 +173,7 @@ tbody tr.selected td {
   border-top: 1px solid var(--vscode-menu-separatorBackground, #444);
   margin: 4px 0;
 }
+
+mark { background: #ffd700; color: black; border-radius: 2px; }
+mark.current { background: #ff8c00; }
+#search-count { font-size: 0.85em; opacity: 0.7; align-self: center; }

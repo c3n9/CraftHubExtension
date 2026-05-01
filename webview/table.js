@@ -210,3 +210,77 @@ document.addEventListener('keydown', (e) => {
     vscode.postMessage({ type: 'pasteRows', after: Math.max(...selectedRows) });
   }
 });
+
+
+// search
+function search() {
+  var input, filter, table, tr, td, i, txtValue;
+  input = document.getElementById("searchInput");
+  filter = input.value.toUpperCase();
+  table = document.getElementById("json-table");
+  tr = table.getElementsByTagName("tr");
+  // Перебирайте все строки таблицы и скрывайте тех, кто не соответствует поисковому запросу
+  for (i = 0; i < tr.length; i++) {
+    td = tr[i].getElementsByTagName("td")[0];
+    if (td) {
+      txtValue = td.textContent || td.innerText;
+      if (txtValue.toUpperCase().indexOf(filter) > -1) {
+        tr[i].style.display = "";
+      } else {
+        tr[i].style.display = "none";
+      }
+    }
+  }
+}
+
+
+function clearHighlights() {
+  document.querySelectorAll('#json-table td').forEach(td => {
+    td.textContent = td.textContent;
+  });
+}
+
+let matches = [];
+let currentMatch = -1;
+
+function applySearch(query) {
+  clearHighlights();
+  matches = [];
+  currentMatch = -1;
+  if (!query) { document.getElementById('search-count').textContent = ''; return; }
+
+  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const regex = new RegExp(`(${escaped})`, 'gi');
+
+  document.querySelectorAll('#json-table td').forEach(td => {
+    if (!regex.test(td.textContent)) return;
+    td.innerHTML = td.textContent.replace(regex, '<mark>$1</mark>');
+  });
+
+  matches = [...document.querySelectorAll('#json-table td mark')];
+  if (matches.length > 0) { currentMatch = 0; scrollToMatch(); }
+  updateCount();
+}
+
+function scrollToMatch() {
+  matches.forEach((m, i) => m.classList.toggle('current', i === currentMatch));
+  matches[currentMatch]?.scrollIntoView({ block: 'nearest' });
+}
+
+function updateCount() {
+  const el = document.getElementById('search-count');
+  el.textContent = matches.length > 0 ? `${currentMatch + 1} / ${matches.length}` : 'No results';
+}
+
+document.getElementById('search-input').addEventListener('input', e => {
+  applySearch(e.target.value.trim());
+});
+
+document.getElementById('search-input').addEventListener('keydown', e => {
+  if (e.key !== 'Enter' || matches.length === 0) return;
+  currentMatch = e.shiftKey
+    ? (currentMatch - 1 + matches.length) % matches.length
+    : (currentMatch + 1) % matches.length;
+  scrollToMatch();
+  updateCount();
+});
