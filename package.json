@@ -1,14 +1,29 @@
 {
   "name": "crafthubextension",
-  "displayName": "CraftHubExtension",
-  "description": "Edit JSON files as a table",
-  "version": "0.0.1",
+  "displayName": "CraftHub — JSON Table Editor",
+  "description": "Edit JSON arrays as an interactive table with inline editing, nested object/array support, search, and seamless toggle to raw JSON.",
+  "version": "1.0.0",
+  "publisher": "crafthub",
   "engines": {
     "vscode": "^1.118.0"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/c3n9/CraftHubExtension"
+  },
   "categories": [
-    "Other"
+    "Other",
+    "Data Science",
+    "Formatters"
   ],
+  "keywords": [
+    "json",
+    "table",
+    "editor",
+    "viewer",
+    "data"
+  ],
+  "icon": "images/icon.png",
   "activationEvents": [],
   "main": "./out/extension.js",
   "contributes": {
