@@ -10,11 +10,9 @@ export function activate(context: vscode.ExtensionContext) {
 			{ supportsMultipleEditorsPerDocument: false }
 		)
 	);
-	// иконка для переключения между редактором и обычным видом
 	context.subscriptions.push(
 		vscode.commands.registerCommand('crafthub.toggleView', async () => {
 			const uri = vscode.window.tabGroups.activeTabGroup.activeTab?.input;
-
 			if (uri instanceof vscode.TabInputCustom) {
 				await vscode.commands.executeCommand('workbench.action.reopenTextEditor');
 			} else if (uri instanceof vscode.TabInputText) {
@@ -55,13 +53,34 @@ class JsonTableEditorProvider implements vscode.CustomTextEditorProvider {
 			} catch {}
 		};
 
-		parseColumns(document.getText());
-		webviewPanel.webview.html = this.getHtml(document.getText(), styleUri, scriptUri, webviewPanel.webview.cspSource, knownColumns);
+		webviewPanel.webview.html = this.getHtml(styleUri, scriptUri, webviewPanel.webview.cspSource);
+
+		const sendData = () => {
+			parseColumns(document.getText());
+			try {
+				const parsed = JSON.parse(document.getText());
+				if (!Array.isArray(parsed)) {
+					webviewPanel.webview.postMessage({ type: 'renderError', message: 'JSON must be an array of objects' });
+					return;
+				}
+				const data = parsed;
+				const columns = data.length > 0 ? allKeys(data) : knownColumns;
+				webviewPanel.webview.postMessage({ type: 'renderTable', data, columns });
+			} catch {
+				webviewPanel.webview.postMessage({ type: 'renderError', message: 'Invalid JSON' });
+			}
+		};
+
+		sendData();
 
 		webviewPanel.webview.onDidReceiveMessage(async (msg) => {
 			if (msg.type === 'edit') {
 				const data = JSON.parse(document.getText());
-				data[msg.row][msg.col] = msg.value;
+				let newVal: unknown = msg.value;
+				if (msg.valueType === 'json') {
+					try { newVal = JSON.parse(msg.value); } catch { /* keep as string */ }
+				}
+				data[msg.row][msg.col] = newVal;
 				const edit = new vscode.WorkspaceEdit();
 				edit.replace(document.uri, new vscode.Range(0, 0, document.lineCount, 0), JSON.stringify(data, null, 2));
 				await vscode.workspace.applyEdit(edit);
@@ -161,65 +180,25 @@ class JsonTableEditorProvider implements vscode.CustomTextEditorProvider {
 				edit.replace(document.uri, new vscode.Range(0, 0, document.lineCount, 0), JSON.stringify(newData, null, 2));
 				await vscode.workspace.applyEdit(edit);
 			}
-
-
 		});
-
-		const updateWebview = () => {
-			parseColumns(document.getText());
-			webviewPanel.webview.html = this.getHtml(
-				document.getText(), styleUri, scriptUri, webviewPanel.webview.cspSource, knownColumns
-			);
-		};
 
 		const changeSubscription = vscode.workspace.onDidChangeTextDocument(e => {
 			if (e.document.uri.toString() === document.uri.toString()) {
-				updateWebview();
+				sendData();
 			}
 		});
 
 		webviewPanel.onDidDispose(() => changeSubscription.dispose());
-
-
 	}
 
-	private getHtml(jsonText: string, styleUri: vscode.Uri, scriptUri: vscode.Uri, cspSource: string, fallbackColumns: string[] = []): string {
-		let data: any[];
-		try {
-			const parsed = JSON.parse(jsonText);
-			if (!Array.isArray(parsed)) {
-				return `<html><body><p style="color:orange">JSON must be an array of objects</p></body></html>`;
-			}
-			data = parsed;
-		} catch {
-			return `<html><body><p style="color:red">Invalid JSON</p></body></html>`;
-		}
-
-		const columns = data.length > 0 ? [...new Set(data.flatMap((r: any) => Object.keys(r)))] : fallbackColumns;
-
-
-		const headers = columns.map(c =>
-			`<th>
-				${c}
-				<button class="delete-column" data-col="${c}">✕</button>
-			</th>`)
-			.join('');
-		const rows = data.length > 0
-			? data.map((row, rowIndex) =>
-				`<tr data-row="${rowIndex}">${columns.map(c =>
-					`<td data-col="${c}"><div class="cell-inner">${row[c] ?? ''}</div></td>`)
-					.join('')}</tr>`
-			).join('')
-			: `<tr class="empty-placeholder"><td colspan="${columns.length || 1}"></td></tr>`;
-
-
+	private getHtml(styleUri: vscode.Uri, scriptUri: vscode.Uri, cspSource: string): string {
 		const htmlPath = path.join(this.context.extensionPath, 'webview', 'index.html');
 		let html = fs.readFileSync(htmlPath, 'utf8');
 		html = html.replaceAll('{{CSP_SOURCE}}', cspSource);
 		html = html.replaceAll('{{STYLE_URI}}', styleUri.toString());
 		html = html.replaceAll('{{SCRIPT_URI}}', scriptUri.toString());
-		html = html.replace('{{HEADERS}}', headers);
-		html = html.replace('{{ROWS}}', rows);
+		html = html.replace('{{HEADERS}}', '');
+		html = html.replace('{{ROWS}}', '');
 		return html;
 	}
 }

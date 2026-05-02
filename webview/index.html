@@ -28,7 +28,7 @@
 
   <dialog id="add-col-dialog">
     <form method="dialog">
-      <h3>New column</h3>
+      <h3>New Column</h3>
       <label>Name <input id="col-name" type="text" required /></label>
       <label>Type
         <select id="col-type">
@@ -48,24 +48,70 @@
 
   <dialog id="delete-col-dialog">
     <form method="dialog">
-      <h3>Do you want delete this column?</h3>
+      <h3>Delete this column?</h3>
       <div class="dialog-buttons">
-        <button type="submit" value="default">Yes</button>
+        <button type="submit" value="default">Delete</button>
         <button type="button" id="btn-cancel-delete-col">Cancel</button>
       </div>
     </form>
   </dialog>
 
+  <div id="error-toast" class="error-toast"></div>
+
+  <dialog id="sub-editor-dialog">
+    <div class="sub-editor-head">
+      <div class="sub-editor-title-row">
+        <button id="sub-btn-back" class="sub-btn-back">← Back</button>
+        <h3 id="sub-editor-title">Edit</h3>
+      </div>
+      <div class="sub-editor-toolbar">
+        <button id="sub-btn-add-col">+ Column</button>
+        <button id="sub-btn-add-row">+ Row</button>
+      </div>
+    </div>
+    <div class="sub-table-wrap">
+      <table id="sub-table">
+        <thead><tr id="sub-thead-row"></tr></thead>
+        <tbody id="sub-tbody"></tbody>
+      </table>
+      <p id="sub-empty" class="sub-empty">No columns — click "+ Column" to add one</p>
+    </div>
+    <div class="dialog-buttons">
+      <button type="button" id="sub-btn-save" class="btn-primary">Save</button>
+      <button type="button" id="sub-btn-cancel">Cancel</button>
+    </div>
+  </dialog>
+
+  <dialog id="sub-add-col-dialog">
+    <form method="dialog">
+      <h3>New Column</h3>
+      <label>Name <input id="sub-col-name" type="text" required /></label>
+      <label>Type
+        <select id="sub-col-type">
+          <option value="string">string</option>
+          <option value="number">number</option>
+          <option value="bool">bool</option>
+          <option value="object">object</option>
+          <option value="array">array</option>
+        </select>
+      </label>
+      <div class="dialog-buttons">
+        <button type="submit" value="default">Add</button>
+        <button type="button" id="btn-cancel-sub-col">Cancel</button>
+      </div>
+    </form>
+  </dialog>
+
   <div id="ctx-menu" class="ctx-menu" hidden>
-    <button data-action="delete">Удалить</button>
-    <button data-action="cut">Вырезать <span class="shortcut">Ctrl+X</span></button>
-    <button data-action="duplicate-after">Дублировать после <span class="shortcut">Ctrl+D</span></button>
-    <button data-action="duplicate-end">Дублировать в конец</button>
+    <button data-action="delete">Delete</button>
+    <button data-action="cut">Cut <span class="shortcut">Ctrl+X</span></button>
+    <button data-action="duplicate-after">Duplicate after <span class="shortcut">Ctrl+D</span></button>
+    <button data-action="duplicate-end">Duplicate to end</button>
     <hr>
-    <button data-action="copy-array">Копировать как массив</button>
-    <button data-action="copy-objects">Копировать как объекты <span class="shortcut">Ctrl+C</span></button>
+    <button data-action="copy-array">Copy as array</button>
+    <button data-action="copy-objects">Copy as objects <span class="shortcut">Ctrl+C</span></button>
     <hr>
-    <button data-action="paste">Вставить <span class="shortcut">Ctrl+V</span></button>
+    <button data-action="paste">Paste <span class="shortcut">Ctrl+V</span></button>
   </div>
 
   <script src="{{SCRIPT_URI}}"></script>

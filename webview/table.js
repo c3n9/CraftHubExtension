@@ -1,8 +1,13 @@
 const vscode = acquireVsCodeApi();
 
+function htmlEsc(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 document.getElementById('json-table').addEventListener('dblclick', (e) => {
   const td = e.target.closest('td');
   if (!td) return;
+  if (td.querySelector('.cell-complex')) return;
 
   const inner = td.querySelector('.cell-inner');
   const original = (inner ? inner.textContent : td.textContent) ?? '';
@@ -73,6 +78,10 @@ document.getElementById('btn-cancel-add-col').addEventListener('click', () => {
 });
 
 document.getElementById('add-row').addEventListener('click', () => {
+  if (document.querySelectorAll('#json-table thead th').length === 0) {
+    showError('Add at least one column first');
+    return;
+  }
   vscode.postMessage({ type: 'addRow' });
 });
 
@@ -99,6 +108,9 @@ document.getElementById('btn-cancel-delete-col').addEventListener('click', () =>
 let selectedRows = new Set();
 
 document.querySelector('#json-table tbody').addEventListener('click', (e) => {
+  const pencil = e.target.closest('.cell-pencil');
+  if (pencil) { subOpen(pencil.closest('td')); return; }
+
   const tr = e.target.closest('tr');
   if (!tr) return;
 
@@ -198,10 +210,49 @@ ctxMenu.addEventListener('click', (e) => {
   ctxMenu.hidden = true;
 });
 
+function renderCell(val) {
+  if (val !== null && val !== undefined && typeof val === 'object') {
+    const json = htmlEsc(JSON.stringify(val, null, 2));
+    const type = Array.isArray(val) ? 'array' : 'object';
+    return `<div class="cell-complex" data-type="${type}"><div class="cell-inner">${json}</div><button class="cell-pencil" title="Edit">✏</button></div>`;
+  }
+  return `<div class="cell-inner">${htmlEsc(String(val ?? ''))}</div>`;
+}
+
+function renderTable(data, columns) {
+  const thead = document.querySelector('#json-table thead tr');
+  const tbody = document.querySelector('#json-table tbody');
+
+  thead.innerHTML = columns.map(c =>
+    `<th>${htmlEsc(c)} <button class="delete-column" data-col="${c}">✕</button></th>`
+  ).join('');
+
+  if (data.length > 0) {
+    tbody.innerHTML = data.map((row, i) =>
+      `<tr data-row="${i}">` +
+      columns.map(c => `<td data-col="${c}">${renderCell(row[c])}</td>`).join('') +
+      `</tr>`
+    ).join('');
+  } else {
+    tbody.innerHTML = `<tr class="empty-placeholder"><td colspan="${columns.length || 1}"></td></tr>`;
+  }
+
+  clearSelection();
+  const q = document.getElementById('search-input').value.trim();
+  if (q) applySearch(q);
+}
+
 window.addEventListener('message', (e) => {
   const msg = e.data;
   if (msg.type === 'copyToClipboard') {
     navigator.clipboard.writeText(msg.text);
+  } else if (msg.type === 'renderTable') {
+    renderTable(msg.data, msg.columns);
+  } else if (msg.type === 'renderError') {
+    const thead = document.querySelector('#json-table thead tr');
+    const tbody = document.querySelector('#json-table tbody');
+    thead.innerHTML = '';
+    tbody.innerHTML = `<tr><td style="color:var(--danger);text-align:center;padding:20px">${htmlEsc(msg.message)}</td></tr>`;
   }
 });
 
@@ -280,4 +331,249 @@ document.getElementById('search-input').addEventListener('keydown', e => {
     : (currentMatch + 1) % matches.length;
   scrollToMatch();
   updateCount();
+});
+
+
+
+const errorToast = document.getElementById('error-toast');
+let toastTimer;
+
+function showError(msg) {
+  clearTimeout(toastTimer);
+  errorToast.textContent = msg;
+  errorToast.classList.add('visible');
+  toastTimer = setTimeout(() => errorToast.classList.remove('visible'), 3000);
+}
+
+
+
+let subTd = null;
+let subType = '';
+let subData = [];
+let subCols = [];
+let subStack = []; // { td, type, data, cols, nestedRow, nestedCol }
+
+const subDialog = document.getElementById('sub-editor-dialog');
+const subTitleEl = document.getElementById('sub-editor-title');
+const subAddRowBtn = document.getElementById('sub-btn-add-row');
+const subAddColBtn = document.getElementById('sub-btn-add-col');
+const subTheadRow = document.getElementById('sub-thead-row');
+const subTbody = document.getElementById('sub-tbody');
+const subEmpty = document.getElementById('sub-empty');
+const subAddColDialog = document.getElementById('sub-add-col-dialog');
+const subColNameInput = document.getElementById('sub-col-name');
+const subColTypeSelect = document.getElementById('sub-col-type');
+
+const SUB_DEFAULTS = { string: '', number: 0, bool: false, object: {}, array: [] };
+
+function updateBackBtn() {
+  document.getElementById('sub-btn-back').style.display = subStack.length > 0 ? '' : 'none';
+}
+
+function subParseTd(td) {
+  const complex = td.querySelector('.cell-complex');
+  if (!complex) return null;
+  const type = complex.dataset.type;
+  let parsed;
+  try { parsed = JSON.parse(td.querySelector('.cell-inner').textContent.trim()); }
+  catch { parsed = type === 'array' ? [] : {}; }
+  return { type, parsed };
+}
+
+function subInitState(td, type, parsed) {
+  subTd = td;
+  subType = type;
+  if (type === 'array') {
+    const arr = Array.isArray(parsed) ? parsed : [];
+    subData = arr.map(item =>
+      (item !== null && typeof item === 'object' && !Array.isArray(item))
+        ? { ...item } : { value: String(item) }
+    );
+  } else {
+    const obj = (parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)) ? parsed : {};
+    subData = [{ ...obj }];
+  }
+  subCols = [...new Set(subData.flatMap(r => Object.keys(r)))];
+  subTitleEl.textContent = type === 'array' ? 'Edit Array' : 'Edit Object';
+  subAddRowBtn.style.display = type === 'array' ? '' : 'none';
+}
+
+function subOpen(td) {
+  const info = subParseTd(td);
+  if (!info) return;
+  subStack = [];
+  subInitState(td, info.type, info.parsed);
+  subRender();
+  subDialog.showModal();
+}
+
+function subDive(td) {
+  const info = subParseTd(td);
+  if (!info) return;
+  subStack.push({
+    td: subTd, type: subType, data: subData, cols: [...subCols],
+    nestedRow: Number(td.closest('tr').dataset.row),
+    nestedCol: td.dataset.col
+  });
+  subInitState(td, info.type, info.parsed);
+  subRender();
+}
+
+function subRender() {
+  const hasCols = subCols.length > 0;
+  subEmpty.hidden = hasCols;
+  document.getElementById('sub-table').style.display = hasCols ? '' : 'none';
+
+  const showDel = subType === 'array';
+
+  subTheadRow.innerHTML = subCols.map(c =>
+    `<th>${htmlEsc(c)} <button class="delete-column sub-del-col" data-col="${c}">✕</button></th>`
+  ).join('') + (showDel && subData.length > 0 ? '<th class="th-del"></th>' : '');
+
+  subTbody.innerHTML = subData.map((row, i) =>
+    `<tr data-row="${i}">` +
+    subCols.map(c => `<td data-col="${c}">${renderCell(row[c])}</td>`).join('') +
+    (showDel ? `<td class="td-del"><button class="row-del-btn" data-row="${i}" title="Delete row">✕</button></td>` : '') +
+    `</tr>`
+  ).join('');
+
+  updateBackBtn();
+}
+
+subTbody.addEventListener('click', (e) => {
+  const pencil = e.target.closest('.cell-pencil');
+  if (pencil) { subDive(pencil.closest('td')); return; }
+
+  const btn = e.target.closest('.row-del-btn');
+  if (!btn) return;
+  subData.splice(Number(btn.dataset.row), 1);
+  subRender();
+});
+
+subTheadRow.addEventListener('click', (e) => {
+  const btn = e.target.closest('.sub-del-col');
+  if (!btn) return;
+  const col = btn.dataset.col;
+  subCols = subCols.filter(c => c !== col);
+  subData.forEach(row => delete row[col]);
+  subRender();
+});
+
+document.getElementById('sub-table').addEventListener('dblclick', (e) => {
+  const td = e.target.closest('#sub-tbody td:not(.td-del)');
+  if (!td || td.querySelector('.cell-complex')) return;
+
+  const inner = td.querySelector('.cell-inner');
+  const original = inner ? inner.textContent : '';
+  const rowIdx = Number(td.closest('tr').dataset.row);
+  const col = td.dataset.col;
+
+  const textarea = document.createElement('textarea');
+  textarea.value = original;
+  td.innerHTML = '';
+  td.appendChild(textarea);
+  textarea.style.height = Math.max(textarea.scrollHeight, 24) + 'px';
+  textarea.focus();
+
+  let cancelled = false;
+
+  const commit = () => {
+    if (cancelled) return;
+    const value = textarea.value;
+    subData[rowIdx][col] = value;
+    td.innerHTML = `<div class="cell-inner"></div>`;
+    td.querySelector('.cell-inner').textContent = value;
+  };
+
+  textarea.addEventListener('blur', commit);
+  textarea.addEventListener('input', () => {
+    textarea.style.height = 'auto';
+    textarea.style.height = textarea.scrollHeight + 'px';
+  });
+  textarea.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Enter' && !ev.shiftKey) { ev.preventDefault(); textarea.blur(); }
+    if (ev.key === 'Escape') {
+      cancelled = true;
+      td.innerHTML = `<div class="cell-inner"></div>`;
+      td.querySelector('.cell-inner').textContent = original;
+    }
+    textarea.style.height = 'auto';
+    textarea.style.height = textarea.scrollHeight + 'px';
+  });
+});
+
+subAddColBtn.addEventListener('click', () => {
+  subColNameInput.value = '';
+  subAddColDialog.showModal();
+});
+
+subAddColDialog.addEventListener('close', () => {
+  if (subAddColDialog.returnValue !== 'default') return;
+  const name = subColNameInput.value.trim();
+  if (!name || subCols.includes(name)) return;
+  const defVal = SUB_DEFAULTS[subColTypeSelect.value] ?? '';
+  subCols.push(name);
+  if (subData.length === 0) subData.push({});
+  subData.forEach(row => { if (!(name in row)) row[name] = defVal; });
+  subRender();
+});
+
+document.getElementById('btn-cancel-sub-col').addEventListener('click', () => {
+  subAddColDialog.close();
+});
+
+subAddRowBtn.addEventListener('click', () => {
+  if (subCols.length === 0) { showError('Add a column first'); return; }
+  subData.push(Object.fromEntries(subCols.map(c => [c, ''])));
+  subRender();
+});
+
+document.getElementById('sub-btn-back').addEventListener('click', () => {
+  if (subStack.length === 0) return;
+  const prev = subStack.pop();
+  subTd = prev.td;
+  subType = prev.type;
+  subData = prev.data;
+  subCols = prev.cols;
+  subTitleEl.textContent = subType === 'array' ? 'Edit Array' : 'Edit Object';
+  subAddRowBtn.style.display = subType === 'array' ? '' : 'none';
+  subRender();
+});
+
+document.getElementById('sub-btn-save').addEventListener('click', () => {
+  const active = document.querySelector('#sub-tbody textarea');
+  if (active) active.blur();
+
+  const result = subType === 'array' ? subData : (subData[0] ?? {});
+
+  if (subStack.length > 0) {
+    const frame = subStack[subStack.length - 1];
+    frame.data[frame.nestedRow][frame.nestedCol] = result;
+    const prev = subStack.pop();
+    subTd = prev.td;
+    subType = prev.type;
+    subData = prev.data;
+    subCols = prev.cols;
+    subTitleEl.textContent = subType === 'array' ? 'Edit Array' : 'Edit Object';
+    subAddRowBtn.style.display = subType === 'array' ? '' : 'none';
+    subRender();
+  } else {
+    const json = JSON.stringify(result, null, 2);
+    const complex = subTd.querySelector('.cell-complex');
+    if (complex) complex.querySelector('.cell-inner').textContent = json;
+    vscode.postMessage({
+      type: 'edit',
+      row: Number(subTd.closest('tr').dataset.row),
+      col: subTd.dataset.col,
+      value: json,
+      valueType: 'json'
+    });
+    subDialog.close();
+    subStack = [];
+  }
+});
+
+document.getElementById('sub-btn-cancel').addEventListener('click', () => {
+  subDialog.close();
+  subStack = [];
 });
