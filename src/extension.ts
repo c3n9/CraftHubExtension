@@ -118,6 +118,24 @@ class JsonTableEditorProvider implements vscode.CustomTextEditorProvider {
 				await vscode.workspace.applyEdit(edit);
 			}
 
+			if (msg.type === 'renameColumn') {
+				const data = JSON.parse(document.getText());
+				for (const row of data) {
+					if (Object.prototype.hasOwnProperty.call(row, msg.oldName)) {
+						const entries = Object.entries(row);
+						const idx = entries.findIndex(([k]) => k === msg.oldName);
+						entries[idx] = [msg.newName, entries[idx][1]];
+						const rebuilt: Record<string, unknown> = {};
+						for (const [k, v] of entries) rebuilt[k] = v;
+						for (const key of Object.keys(row)) delete row[key];
+						Object.assign(row, rebuilt);
+					}
+				}
+				const edit = new vscode.WorkspaceEdit();
+				edit.replace(document.uri, new vscode.Range(0, 0, document.lineCount, 0), JSON.stringify(data, null, 2));
+				await vscode.workspace.applyEdit(edit);
+			}
+
 			if (msg.type === 'deleteRows') {
 				const data = JSON.parse(document.getText());
 				const toDelete = new Set(msg.rows as number[]);

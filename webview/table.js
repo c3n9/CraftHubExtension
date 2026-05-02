@@ -89,11 +89,62 @@ const deleteDialog = document.getElementById('delete-col-dialog');
 let colToDelete = '';
 
 document.getElementById('json-table').addEventListener('click', (e) => {
+  const renameBtn = e.target.closest('.rename-column');
+  if (renameBtn) {
+    startRenameColumn(renameBtn);
+    return;
+  }
   const btn = e.target.closest('.delete-column');
   if (!btn) return;
   colToDelete = btn.dataset.col;
   deleteDialog.showModal();
 });
+
+function startRenameColumn(renameBtn) {
+  const th = renameBtn.closest('th');
+  const oldName = renameBtn.dataset.col;
+  const nameSpan = th.querySelector('.col-name');
+
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.value = oldName;
+  input.className = 'col-rename-input';
+  nameSpan.replaceWith(input);
+  input.focus();
+  input.select();
+
+  let committed = false;
+
+  const commit = () => {
+    if (committed) return;
+    committed = true;
+    const newName = input.value.trim();
+    const span = document.createElement('span');
+    span.className = 'col-name';
+    input.replaceWith(span);
+    if (!newName || newName === oldName) {
+      span.textContent = oldName;
+      return;
+    }
+    span.textContent = newName;
+    renameBtn.dataset.col = newName;
+    th.querySelector('.delete-column').dataset.col = newName;
+    th.querySelectorAll('td').forEach(td => { if (td.dataset.col === oldName) td.dataset.col = newName; });
+    vscode.postMessage({ type: 'renameColumn', oldName, newName });
+  };
+
+  input.addEventListener('blur', commit);
+  input.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Enter') { ev.preventDefault(); input.blur(); }
+    if (ev.key === 'Escape') {
+      committed = true;
+      const span = document.createElement('span');
+      span.className = 'col-name';
+      span.textContent = oldName;
+      input.replaceWith(span);
+    }
+  });
+}
 
 deleteDialog.addEventListener('close', () => {
   if (deleteDialog.returnValue !== 'default') return;
@@ -224,7 +275,7 @@ function renderTable(data, columns) {
   const tbody = document.querySelector('#json-table tbody');
 
   thead.innerHTML = columns.map(c =>
-    `<th>${htmlEsc(c)} <button class="delete-column" data-col="${c}">✕</button></th>`
+    `<th><span class="col-name">${htmlEsc(c)}</span><button class="rename-column" data-col="${c}" title="Rename">✎</button><button class="delete-column" data-col="${c}">✕</button></th>`
   ).join('');
 
   if (data.length > 0) {

@@ -226,6 +226,36 @@ td textarea {
   min-height: 24px;
 }
 
+/* ── Rename column button ── */
+.rename-column {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0 0 0 5px;
+  font-size: 12px;
+  line-height: 1;
+  transition: color 0.15s;
+  vertical-align: middle;
+}
+
+.rename-column:hover { color: var(--accent); }
+
+.col-rename-input {
+  background: var(--vscode-input-background, var(--surface-2));
+  color: var(--vscode-input-foreground, var(--text));
+  border: 1px solid var(--accent);
+  padding: 1px 5px;
+  font-size: 11px;
+  font-family: inherit;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  outline: none;
+  width: 90px;
+  border-radius: 2px;
+}
+
 /* ── Delete column button ── */
 .delete-column {
   background: transparent;
