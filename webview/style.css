@@ -105,8 +105,19 @@ body {
 /* ── Table ── */
 table {
   border-collapse: collapse;
-  width: 100%;
   table-layout: fixed;
+}
+
+#json-table {
+  width: auto;
+  min-width: 100%;
+}
+
+#json-table th,
+#json-table td {
+  width: 200px;
+  min-width: 120px;
+  max-width: 300px;
 }
 
 th, td {
