@@ -12,9 +12,10 @@
 
 <body>
   <div class="toolbar">
-    <button id="add-column">Add Column</button>
-    <button id="add-row">Add Row</button>
-    <input id="search-input" type="text" placeholder="Search..." />
+    <button id="add-column">+ Column</button>
+    <button id="add-row">+ Row</button>
+    <div class="sep"></div>
+    <input id="search-input" type="text" placeholder="Search…" />
     <span id="search-count"></span>
   </div>
   <div class="table-wrap">
@@ -40,8 +41,8 @@
         </select>
       </label>
       <div class="dialog-buttons">
-        <button type="submit" value="default">Add</button>
         <button type="button" id="btn-cancel-add-col">Cancel</button>
+        <button type="submit" value="default">Add</button>
       </div>
     </form>
   </dialog>
@@ -50,8 +51,8 @@
     <form method="dialog">
       <h3>Delete this column?</h3>
       <div class="dialog-buttons">
-        <button type="submit" value="default">Delete</button>
         <button type="button" id="btn-cancel-delete-col">Cancel</button>
+        <button type="submit" value="default">Delete</button>
       </div>
     </form>
   </dialog>
@@ -80,6 +81,12 @@
       <button type="button" id="sub-btn-save" class="btn-primary">Save</button>
       <button type="button" id="sub-btn-cancel">Cancel</button>
     </div>
+    <div id="sub-ctx-menu" class="ctx-menu" hidden>
+      <button data-action="sub-duplicate">Duplicate row</button>
+      <button data-action="sub-cut">Cut row</button>
+      <hr id="sub-ctx-paste-sep">
+      <button data-action="sub-paste">Paste row</button>
+    </div>
   </dialog>
 
   <dialog id="sub-add-col-dialog">
@@ -96,8 +103,8 @@
         </select>
       </label>
       <div class="dialog-buttons">
-        <button type="submit" value="default">Add</button>
         <button type="button" id="btn-cancel-sub-col">Cancel</button>
+        <button type="submit" value="default">Add</button>
       </div>
     </form>
   </dialog>

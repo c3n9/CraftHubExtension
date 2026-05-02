@@ -1,27 +1,35 @@
 :root {
-  /* Backgrounds — follow VS Code theme */
-  --bg:         var(--vscode-editor-background);
-  --surface:    var(--vscode-sideBar-background,        var(--vscode-editor-background));
-  --surface-2:  var(--vscode-toolbar-hoverBackground,   rgba(128, 128, 128, 0.12));
+  /* Backgrounds */
+  --bg:        var(--vscode-editor-background);
+  --surface:   var(--vscode-sideBar-background,      var(--vscode-editor-background));
+  --surface-2: var(--vscode-toolbar-hoverBackground, rgba(128, 128, 128, 0.10));
+  --surface-3: rgba(128, 128, 128, 0.06);
 
   /* Borders */
-  --border:     var(--vscode-editorWidget-border,       rgba(128, 128, 128, 0.3));
+  --border:    var(--vscode-editorWidget-border, rgba(128, 128, 128, 0.22));
 
   /* Text */
-  --text:       var(--vscode-editor-foreground,         #e2e8f0);
-  --text-sec:   var(--vscode-descriptionForeground,     #94a3b8);
-  --text-muted: var(--vscode-disabledForeground,        #64748b);
+  --text:      var(--vscode-editor-foreground,    #e2e8f0);
+  --text-sec:  var(--vscode-descriptionForeground, #94a3b8);
+  --text-muted:var(--vscode-disabledForeground,   #64748b);
 
-  /* Accent — always blue */
+  /* Accent */
   --accent:     #2563eb;
   --accent-hov: #1d4ed8;
-  --accent-dim: rgba(37, 99, 235, 0.12);
+  --accent-dim: rgba(37, 99, 235, 0.14);
+  --accent-dim2:rgba(37, 99, 235, 0.22);
 
   /* Semantic */
-  --danger:   #dc2626;
-  --selected: rgba(37, 99, 235, 0.16);
-  --hover:    var(--vscode-list-hoverBackground,        rgba(128, 128, 128, 0.07));
-  --row-alt:  rgba(128, 128, 128, 0.04);
+  --danger:     #e53e3e;
+  --danger-dim: rgba(229, 62, 62, 0.12);
+  --selected:   rgba(37, 99, 235, 0.14);
+  --hover:      var(--vscode-list-hoverBackground, rgba(128, 128, 128, 0.06));
+  --row-alt:    rgba(128, 128, 128, 0.03);
+
+  /* Radius */
+  --r:    6px;
+  --r-lg: 10px;
+  --r-sm: 4px;
 }
 
 * { box-sizing: border-box; }
@@ -43,47 +51,63 @@ body {
 .toolbar {
   display: flex;
   align-items: center;
-  gap: 2px;
-  padding: 7px 12px;
+  gap: 4px;
+  padding: 8px 14px;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
 
 .toolbar button {
-  background: transparent;
-  margin-right: 5px;
+  background: var(--surface-2);
   color: var(--text-sec);
-  border: 1px solid transparent;
-  padding: 4px 10px;
+  border: 1px solid var(--border);
+  padding: 5px 12px;
   cursor: pointer;
   font-size: 12px;
   font-family: inherit;
-  border-radius: 3px;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  font-weight: 500;
+  border-radius: var(--r);
+  transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
   white-space: nowrap;
 }
 
 .toolbar button:hover {
-  background: var(--surface-2);
-  color: var(--text);
-  border-color: var(--border);
+  background: var(--accent-dim);
+  color: var(--accent);
+  border-color: var(--accent-dim2);
+}
+
+.toolbar .sep {
+  width: 1px;
+  height: 18px;
+  background: var(--border);
+  margin: 0 4px;
+  flex-shrink: 0;
 }
 
 #search-input {
-  background: var(--vscode-input-background, var(--bg));
+  background: var(--vscode-input-background, var(--surface-2));
   color: var(--vscode-input-foreground, var(--text));
   border: 1px solid var(--vscode-input-border, var(--border));
-  padding: 4px 10px;
+  padding: 5px 10px 5px 32px;
   font-size: 12px;
   font-family: inherit;
-  border-radius: 3px;
+  border-radius: var(--r);
   width: 200px;
   outline: none;
-  transition: border-color 0.15s;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: 10px center;
+  margin-left: 4px;
 }
 
-#search-input:focus { border-color: var(--accent); }
+#search-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-dim);
+}
+
 #search-input::placeholder { color: var(--text-muted); }
 
 #search-count {
@@ -91,13 +115,14 @@ body {
   color: var(--text-muted);
   padding: 0 6px;
   white-space: nowrap;
+  min-width: 48px;
 }
 
 /* ── Table wrapper ── */
 .table-wrap {
   flex: 1;
   min-height: 0;
-  padding: 12px;
+  padding: 14px 16px;
   overflow-x: auto;
   overflow-y: scroll;
 }
@@ -123,7 +148,7 @@ table {
 th, td {
   border-bottom: 1px solid var(--border);
   border-right: 1px solid var(--border);
-  padding: 7px 12px;
+  padding: 8px 12px;
   text-align: left;
   word-break: break-word;
   vertical-align: top;
@@ -135,14 +160,16 @@ tr:last-child td { border-bottom: none; }
 th {
   background: var(--surface);
   color: var(--text-sec);
-  font-weight: 500;
+  font-weight: 600;
   font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   position: sticky;
   top: 0;
   z-index: 1;
   user-select: none;
+  white-space: nowrap;
+  padding: 6px 10px;
 }
 
 tr:nth-child(even) td { background: var(--row-alt); }
@@ -151,6 +178,7 @@ tbody tr:hover td { background: var(--hover); }
 tbody tr {
   cursor: pointer;
   user-select: none;
+  transition: background 0.08s;
 }
 
 tbody tr.selected td {
@@ -167,6 +195,7 @@ td { position: relative; }
   -webkit-line-clamp: 3;
   line-clamp: 3;
   overflow: hidden;
+  line-height: 1.5;
 }
 
 /* ── Complex cell (array / object) ── */
@@ -179,7 +208,7 @@ td { position: relative; }
 .cell-complex .cell-inner {
   flex: 1;
   min-width: 0;
-  font-family: 'Cascadia Code', 'Fira Code', Consolas, monospace;
+  font-family: var(--vscode-editor-font-family, 'Cascadia Code', 'Fira Code', Consolas, monospace);
   font-size: 11px;
   color: var(--text-sec);
   white-space: pre-wrap;
@@ -187,20 +216,20 @@ td { position: relative; }
 
 .cell-pencil {
   flex-shrink: 0;
-  background: transparent;
+  background: var(--surface-2);
   border: 1px solid var(--border);
   cursor: pointer;
   color: var(--text-muted);
   font-size: 11px;
-  padding: 1px 5px;
+  padding: 2px 6px;
   line-height: 1.6;
-  border-radius: 2px;
+  border-radius: var(--r-sm);
   transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
 
 .cell-pencil:hover {
   color: var(--accent);
-  border-color: var(--accent);
+  border-color: var(--accent-dim2);
   background: var(--accent-dim);
 }
 
@@ -210,14 +239,15 @@ td textarea {
   background: var(--vscode-input-background, var(--surface-2));
   color: var(--vscode-input-foreground, var(--text));
   border: 1px solid var(--accent);
-  padding: 3px 6px;
+  padding: 4px 7px;
   font-size: inherit;
   font-family: inherit;
   line-height: inherit;
-  border-radius: 2px;
+  border-radius: var(--r-sm);
   outline: none;
   width: 100%;
   display: block;
+  box-shadow: 0 0 0 2px var(--accent-dim);
 }
 
 td textarea {
@@ -226,50 +256,61 @@ td textarea {
   min-height: 24px;
 }
 
-/* ── Rename column button ── */
-.rename-column {
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  padding: 0 0 0 5px;
-  font-size: 12px;
-  line-height: 1;
-  transition: color 0.15s;
+/* ── Column header buttons ── */
+.col-name {
+  display: inline-block;
   vertical-align: middle;
+  max-width: calc(100% - 64px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.rename-column:hover { color: var(--accent); }
+.rename-column,
+.delete-column {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  padding: 2px 6px;
+  font-size: 11px;
+  line-height: 1;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
+  border-radius: var(--r-sm);
+  color: var(--text-muted);
+  margin-left: 3px;
+}
+
+.rename-column:hover {
+  color: var(--accent);
+  background: var(--accent-dim);
+  border-color: var(--accent-dim2);
+}
+
+.delete-column:hover {
+  color: var(--danger);
+  background: var(--danger-dim);
+  border-color: rgba(229, 62, 62, 0.3);
+}
 
 .col-rename-input {
   background: var(--vscode-input-background, var(--surface-2));
   color: var(--vscode-input-foreground, var(--text));
   border: 1px solid var(--accent);
-  padding: 1px 5px;
+  padding: 2px 6px;
   font-size: 11px;
   font-family: inherit;
-  font-weight: 500;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   outline: none;
-  width: 90px;
-  border-radius: 2px;
+  width: 100px;
+  border-radius: var(--r-sm);
+  box-shadow: 0 0 0 2px var(--accent-dim);
 }
-
-/* ── Delete column button ── */
-.delete-column {
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  padding: 0 0 0 5px;
-  font-size: 11px;
-  line-height: 1;
-  transition: color 0.15s;
-  vertical-align: middle;
-}
-
-.delete-column:hover { color: var(--danger); }
 
 /* ── Empty placeholder row ── */
 tr.empty-placeholder td {
@@ -280,10 +321,10 @@ tr.empty-placeholder td {
   text-align: center;
 }
 
-/* ── Dialogs — rectangular ── */
+/* ── Dialogs ── */
 @keyframes dialog-in {
-  from { opacity: 0; transform: translateY(-4px); }
-  to   { opacity: 1; transform: translateY(0);    }
+  from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
 }
 
 dialog {
@@ -293,16 +334,16 @@ dialog {
   border-radius: 0;
   padding: 0;
   min-width: 300px;
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 4px 16px rgba(0, 0, 0, 0.25);
 }
 
 dialog[open] {
-  animation: dialog-in 0.12s ease;
+  animation: dialog-in 0.14s cubic-bezier(0.2, 0, 0.2, 1);
 }
 
 dialog::backdrop {
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(2px);
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(3px);
 }
 
 dialog h3 {
@@ -313,29 +354,30 @@ dialog h3 {
 }
 
 /* Small dialogs */
+
 #add-col-dialog,
 #delete-col-dialog,
 #sub-add-col-dialog {
-  padding: 20px 24px 20px;
+  padding: 22px 24px 20px;
 }
 
 #add-col-dialog h3,
 #delete-col-dialog h3,
 #sub-add-col-dialog h3 {
   margin-bottom: 18px;
-  padding-bottom: 12px;
+  padding-bottom: 13px;
   border-bottom: 1px solid var(--border);
 }
 
 dialog label {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 6px;
   margin-bottom: 14px;
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
   color: var(--text-muted);
 }
 
@@ -347,12 +389,23 @@ dialog select {
   padding: 7px 10px;
   font-size: 13px;
   font-family: inherit;
-  border-radius: 0;
+  border-radius: var(--r);
   outline: none;
   transition: border-color 0.15s, box-shadow 0.15s;
   text-transform: none;
   letter-spacing: normal;
   font-weight: normal;
+  width: 100%;
+}
+
+dialog select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 32px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  cursor: pointer;
 }
 
 dialog input:focus,
@@ -363,18 +416,18 @@ dialog select:focus {
 
 .dialog-buttons {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   justify-content: flex-end;
-  margin-top: 18px;
+  margin-top: 20px;
 }
 
 .dialog-buttons button {
-  padding: 6px 16px;
+  padding: 7px 18px;
   cursor: pointer;
   font-size: 12px;
   font-family: inherit;
-  border-radius: 0;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  border-radius: var(--r);
+  transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
   border: 1px solid var(--border);
   font-weight: 500;
 }
@@ -390,6 +443,7 @@ dialog select:focus {
 .dialog-buttons .btn-primary:hover {
   background: var(--accent-hov);
   border-color: var(--accent-hov);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
 }
 
 .dialog-buttons button[type="button"]:not(.btn-primary) {
@@ -400,6 +454,7 @@ dialog select:focus {
 .dialog-buttons button[type="button"]:not(.btn-primary):hover {
   background: var(--surface-2);
   color: var(--text);
+  border-color: var(--border);
 }
 
 /* ── Sub-editor dialog ── */
@@ -420,7 +475,7 @@ dialog select:focus {
   justify-content: space-between;
   align-items: center;
   gap: 16px;
-  padding: 16px 20px;
+  padding: 14px 18px;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
@@ -432,20 +487,22 @@ dialog select:focus {
 }
 
 .sub-btn-back {
-  background: transparent;
+  background: var(--surface-2);
   border: 1px solid var(--border);
   color: var(--text-sec);
-  padding: 3px 10px;
+  padding: 4px 12px;
   cursor: pointer;
   font-size: 12px;
   font-family: inherit;
-  border-radius: 0;
-  transition: background 0.15s, color 0.15s;
+  font-weight: 500;
+  border-radius: var(--r);
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 
 .sub-btn-back:hover {
   background: var(--surface-2);
   color: var(--text);
+  border-color: var(--border);
 }
 
 .sub-editor-toolbar {
@@ -454,21 +511,23 @@ dialog select:focus {
 }
 
 .sub-editor-toolbar button {
-  background: transparent;
+  background: var(--surface-2);
   color: var(--text-sec);
   border: 1px solid var(--border);
-  padding: 4px 12px;
+  padding: 5px 12px;
   cursor: pointer;
   font-size: 12px;
   font-family: inherit;
-  border-radius: 0;
-  transition: background 0.15s, color 0.15s;
+  font-weight: 500;
+  border-radius: var(--r);
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
   white-space: nowrap;
 }
 
 .sub-editor-toolbar button:hover {
-  background: var(--surface-2);
-  color: var(--text);
+  background: var(--accent-dim);
+  color: var(--accent);
+  border-color: var(--accent-dim2);
 }
 
 /* Sub-table scroll area */
@@ -479,7 +538,7 @@ dialog select:focus {
   overflow-y: scroll;
 }
 
-/* Sub-table — fixed layout prevents jumping */
+/* Sub-table */
 #sub-table {
   table-layout: fixed;
   min-width: 100%;
@@ -525,17 +584,18 @@ dialog select:focus {
   cursor: pointer;
   font-size: 11px;
   padding: 3px 6px;
+  border-radius: var(--r-sm);
   transition: color 0.15s, background 0.15s;
   line-height: 1;
 }
 
 .row-del-btn:hover {
   color: var(--danger);
-  background: rgba(220, 38, 38, 0.1);
+  background: var(--danger-dim);
 }
 
 #sub-editor-dialog .dialog-buttons {
-  padding: 12px 20px;
+  padding: 12px 18px;
   margin-top: 0;
   border-top: 1px solid var(--border);
   flex-shrink: 0;
@@ -546,11 +606,11 @@ dialog select:focus {
   position: fixed;
   bottom: 24px;
   left: 50%;
-  transform: translateX(-50%) translateY(8px);
+  transform: translateX(-50%) translateY(10px);
   background: var(--danger);
   color: #fff;
-  padding: 8px 18px;
-  border-radius: 0;
+  padding: 9px 20px;
+  border-radius: var(--r);
   font-size: 12px;
   font-weight: 500;
   opacity: 0;
@@ -558,7 +618,7 @@ dialog select:focus {
   transition: opacity 0.18s, transform 0.18s;
   z-index: 2000;
   white-space: nowrap;
-  box-shadow: 0 4px 20px rgba(220, 38, 38, 0.35);
+  box-shadow: 0 4px 20px rgba(229, 62, 62, 0.4);
 }
 
 .error-toast.visible {
@@ -569,14 +629,14 @@ dialog select:focus {
 /* ── Context menu ── */
 .ctx-menu {
   position: fixed;
-  background: var(--vscode-menu-background,           var(--surface));
-  color: var(--vscode-menu-foreground,                var(--text));
-  border: 1px solid var(--vscode-menu-border,         var(--border));
-  border-radius: 0;
+  background: var(--vscode-menu-background,  var(--surface));
+  color: var(--vscode-menu-foreground,        var(--text));
+  border: 1px solid var(--vscode-menu-border, var(--border));
+  border-radius: var(--r);
   padding: 4px;
   min-width: 210px;
   z-index: 1000;
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45), 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .ctx-menu button {
@@ -593,19 +653,19 @@ dialog select:focus {
   cursor: pointer;
   font-size: 12px;
   font-family: inherit;
-  border-radius: 0;
+  border-radius: var(--r-sm);
   transition: background 0.1s;
 }
 
 .ctx-menu button:hover {
-  background: var(--vscode-menu-selectionBackground, var(--surface-2));
+  background: var(--vscode-menu-selectionBackground, var(--accent-dim));
   color: var(--vscode-menu-selectionForeground, var(--text));
 }
 
 .shortcut {
   color: var(--vscode-menu-foreground, var(--text-muted));
   font-size: 11px;
-  opacity: 0.6;
+  opacity: 0.55;
 }
 
 .ctx-menu hr {
@@ -616,13 +676,26 @@ dialog select:focus {
 
 /* ── Search highlights ── */
 mark {
-  background: rgba(255, 220, 50, 0.25);
+  background: rgba(255, 214, 0, 0.28);
   color: var(--text);
-  border-radius: 1px;
+  border-radius: 2px;
   padding: 0 1px;
 }
 
 mark.current {
-  background: rgba(255, 140, 0, 0.55);
+  background: rgba(255, 130, 0, 0.6);
   color: #fff;
+  border-radius: 2px;
 }
+
+/* ── Scrollbars ── */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); background-clip: padding-box; }
+::-webkit-scrollbar-corner { background: transparent; }

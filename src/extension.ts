@@ -74,6 +74,11 @@ class JsonTableEditorProvider implements vscode.CustomTextEditorProvider {
 		sendData();
 
 		webviewPanel.webview.onDidReceiveMessage(async (msg) => {
+			if (msg.type === 'ready') {
+				sendData();
+				return;
+			}
+
 			if (msg.type === 'edit') {
 				const data = JSON.parse(document.getText());
 				let newVal: unknown = msg.value;

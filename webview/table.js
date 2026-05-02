@@ -275,7 +275,7 @@ function renderTable(data, columns) {
   const tbody = document.querySelector('#json-table tbody');
 
   thead.innerHTML = columns.map(c =>
-    `<th><span class="col-name">${htmlEsc(c)}</span><button class="rename-column" data-col="${c}" title="Rename">✎</button><button class="delete-column" data-col="${c}">✕</button></th>`
+    `<th><span class="col-name" title="${htmlEsc(c)}">${htmlEsc(c)}</span><button class="rename-column" data-col="${c}" title="Rename">✎</button><button class="delete-column" data-col="${c}">✕</button></th>`
   ).join('');
 
   if (data.length > 0) {
@@ -478,7 +478,7 @@ function subRender() {
   const showDel = subType === 'array';
 
   subTheadRow.innerHTML = subCols.map(c =>
-    `<th>${htmlEsc(c)} <button class="delete-column sub-del-col" data-col="${c}">✕</button></th>`
+    `<th><span class="col-name" title="${htmlEsc(c)}">${htmlEsc(c)}</span><button class="rename-column sub-rename-col" data-col="${c}" title="Rename">✎</button><button class="delete-column sub-del-col" data-col="${c}">✕</button></th>`
   ).join('') + (showDel && subData.length > 0 ? '<th class="th-del"></th>' : '');
 
   subTbody.innerHTML = subData.map((row, i) =>
@@ -501,7 +501,11 @@ subTbody.addEventListener('click', (e) => {
   subRender();
 });
 
+
 subTheadRow.addEventListener('click', (e) => {
+  const renameBtn = e.target.closest('.sub-rename-col');
+  if (renameBtn) { startRenameSubColumn(renameBtn); return; }
+
   const btn = e.target.closest('.sub-del-col');
   if (!btn) return;
   const col = btn.dataset.col;
@@ -509,6 +513,62 @@ subTheadRow.addEventListener('click', (e) => {
   subData.forEach(row => delete row[col]);
   subRender();
 });
+
+function startRenameSubColumn(renameBtn) {
+  const th = renameBtn.closest('th');
+  const oldName = renameBtn.dataset.col;
+  const nameSpan = th.querySelector('.col-name');
+
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.value = oldName;
+  input.className = 'col-rename-input';
+  nameSpan.replaceWith(input);
+  input.focus();
+  input.select();
+
+  let committed = false;
+
+  const commit = () => {
+    if (committed) return;
+    committed = true;
+    const newName = input.value.trim();
+    const span = document.createElement('span');
+    span.className = 'col-name';
+    input.replaceWith(span);
+    if (!newName || newName === oldName) { span.textContent = oldName; span.title = oldName; return; }
+    span.textContent = newName;
+    span.title = newName;
+    renameBtn.dataset.col = newName;
+    th.querySelector('.sub-del-col').dataset.col = newName;
+    const idx = subCols.indexOf(oldName);
+    if (idx !== -1) subCols[idx] = newName;
+    subData.forEach(row => {
+      if (Object.prototype.hasOwnProperty.call(row, oldName)) {
+        const entries = Object.entries(row);
+        const ei = entries.findIndex(([k]) => k === oldName);
+        entries[ei] = [newName, entries[ei][1]];
+        const rebuilt = {};
+        for (const [k, v] of entries) rebuilt[k] = v;
+        for (const k of Object.keys(row)) delete row[k];
+        Object.assign(row, rebuilt);
+      }
+    });
+  };
+
+  input.addEventListener('blur', commit);
+  input.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Enter') { ev.preventDefault(); input.blur(); }
+    if (ev.key === 'Escape') {
+      committed = true;
+      const span = document.createElement('span');
+      span.className = 'col-name';
+      span.textContent = oldName;
+      span.title = oldName;
+      input.replaceWith(span);
+    }
+  });
+}
 
 document.getElementById('sub-table').addEventListener('dblclick', (e) => {
   const td = e.target.closest('#sub-tbody td:not(.td-del)');
@@ -628,3 +688,49 @@ document.getElementById('sub-btn-cancel').addEventListener('click', () => {
   subDialog.close();
   subStack = [];
 });
+
+// --- sub-table context menu (array only) ---
+const subCtxMenu = document.getElementById('sub-ctx-menu');
+let subCtxRow = -1;
+let subClipboard = null;
+
+subTbody.addEventListener('contextmenu', (e) => {
+  if (subType !== 'array') return;
+  const tr = e.target.closest('tr');
+  if (!tr || tr.dataset.row === undefined) return;
+  e.preventDefault();
+  e.stopPropagation();
+  subCtxRow = Number(tr.dataset.row);
+  const showPaste = !!subClipboard;
+  subCtxMenu.querySelector('[data-action="sub-paste"]').style.display = showPaste ? '' : 'none';
+  document.getElementById('sub-ctx-paste-sep').style.display = showPaste ? '' : 'none';
+  const rect = subDialog.getBoundingClientRect();
+  subCtxMenu.style.left = Math.min(e.clientX, rect.right - 180) + 'px';
+  subCtxMenu.style.top = e.clientY + 'px';
+  subCtxMenu.hidden = false;
+});
+
+subCtxMenu.addEventListener('click', (e) => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  subCtxMenu.hidden = true;
+  const action = btn.dataset.action;
+  if (action === 'sub-duplicate') {
+    subData.splice(subCtxRow + 1, 0, { ...subData[subCtxRow] });
+    subRender();
+  } else if (action === 'sub-cut') {
+    subClipboard = { ...subData[subCtxRow] };
+    subData.splice(subCtxRow, 1);
+    subRender();
+  } else if (action === 'sub-paste') {
+    if (!subClipboard) return;
+    subData.splice(subCtxRow + 1, 0, { ...subClipboard });
+    subRender();
+  }
+});
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('#sub-ctx-menu')) subCtxMenu.hidden = true;
+});
+
+vscode.postMessage({ type: 'ready' });
