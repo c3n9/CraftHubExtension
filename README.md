@@ -1,6 +1,7 @@
 <p align="center">
     <img width="1140" height="809" alt="VsCodeScreen" src="https://github.com/user-attachments/assets/8a648e4d-d9d6-48fb-bd2d-23ba6273b24c" />
 </p>
+
 **CraftHub is a Visual Studio Code extension that lets you edit JSON arrays as an interactive table — no more manually hunting through brackets and commas. Switch between the table view and the raw JSON editor with a single click.**
 
 ## Features
