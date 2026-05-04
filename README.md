@@ -4,6 +4,8 @@
 
 **CraftHub is a Visual Studio Code extension that lets you edit JSON arrays as an interactive table — no more manually hunting through brackets and commas. Switch between the table view and the raw JSON editor with a single click.**
 
+[**→ Install from VS Code Marketplace**](https://marketplace.visualstudio.com/items?itemName=c3n9.crafthub)
+
 ## Features
 
 ### 1. Table View for JSON Files
