@@ -2,10 +2,10 @@
   "name": "crafthub",
   "displayName": "CraftHub — JSON Table Editor",
   "description": "Edit JSON arrays as an interactive table with inline editing, nested object/array support, search, and seamless toggle to raw JSON.",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "publisher": "c3n9",
   "engines": {
-    "vscode": "^1.118.0"
+    "vscode": "^1.71.0"
   },
   "repository": {
     "type": "git",
@@ -67,7 +67,7 @@
   "devDependencies": {
     "@types/mocha": "^10.0.10",
     "@types/node": "^22.19.17",
-    "@types/vscode": "^1.118.0",
+    "@types/vscode": "^1.71.0",
     "@typescript-eslint/eslint-plugin": "^8.42.0",
     "@typescript-eslint/parser": "^8.42.0",
     "@vscode/test-cli": "^0.0.11",
