@@ -50,7 +50,7 @@ class JsonTableEditorProvider implements vscode.CustomTextEditorProvider {
 			try {
 				const d = JSON.parse(text);
 				if (Array.isArray(d) && d.length > 0) knownColumns = allKeys(d);
-			} catch {}
+			} catch { }
 		};
 
 		webviewPanel.webview.html = this.getHtml(styleUri, scriptUri, webviewPanel.webview.cspSource);
@@ -59,11 +59,18 @@ class JsonTableEditorProvider implements vscode.CustomTextEditorProvider {
 			parseColumns(document.getText());
 			try {
 				const parsed = JSON.parse(document.getText());
-				if (!Array.isArray(parsed)) {
-					webviewPanel.webview.postMessage({ type: 'renderError', message: 'JSON must be an array of objects' });
+
+				let data: object[];
+
+				if (Array.isArray(parsed)) {
+					data = parsed;
+				} else if (typeof parsed === 'object' && parsed !== null) {
+					data = [parsed];
+				} else {
+					webviewPanel.webview.postMessage({ type: 'renderError', message: 'JSON must be an object or array of objects' });
 					return;
 				}
-				const data = parsed;
+
 				const columns = data.length > 0 ? allKeys(data) : knownColumns;
 				webviewPanel.webview.postMessage({ type: 'renderTable', data, columns });
 			} catch {
