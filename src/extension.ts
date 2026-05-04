@@ -1,6 +1,34 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as jsonc from 'jsonc-parser';
+
+function parseJsonc(text: string): any {
+	const errors: jsonc.ParseError[] = [];
+	const result = jsonc.parse(text, errors);
+	if (errors.length > 0) throw new Error('Invalid JSON');
+	return result;
+}
+
+function toRows(parsed: any): { rows: any[]; isArray: boolean } {
+	const isArray = Array.isArray(parsed);
+	return { rows: isArray ? parsed : [parsed], isArray };
+}
+
+function detectFormat(text: string): jsonc.FormattingOptions {
+	const match = text.match(/^([ \t]+)/m);
+	if (match) {
+		const indent = match[1];
+		return indent[0] === '\t'
+			? { insertSpaces: false, tabSize: 1 }
+			: { insertSpaces: true, tabSize: indent.length };
+	}
+	return { insertSpaces: false, tabSize: 1 };
+}
+
+function applyMod(text: string, jsPath: jsonc.JSONPath, value: unknown, opts: jsonc.ModificationOptions = {}): string {
+	return jsonc.applyEdits(text, jsonc.modify(text, jsPath, value, opts));
+}
 
 export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(
@@ -48,7 +76,7 @@ class JsonTableEditorProvider implements vscode.CustomTextEditorProvider {
 
 		const parseColumns = (text: string) => {
 			try {
-				const d = JSON.parse(text);
+				const d = parseJsonc(text);
 				if (Array.isArray(d) && d.length > 0) knownColumns = allKeys(d);
 			} catch { }
 		};
@@ -58,7 +86,7 @@ class JsonTableEditorProvider implements vscode.CustomTextEditorProvider {
 		const sendData = () => {
 			parseColumns(document.getText());
 			try {
-				const parsed = JSON.parse(document.getText());
+				const parsed = parseJsonc(document.getText());
 
 				let data: object[];
 
@@ -80,6 +108,12 @@ class JsonTableEditorProvider implements vscode.CustomTextEditorProvider {
 
 		sendData();
 
+		const applyText = async (text: string) => {
+			const wsEdit = new vscode.WorkspaceEdit();
+			wsEdit.replace(document.uri, new vscode.Range(0, 0, document.lineCount, 0), text);
+			await vscode.workspace.applyEdit(wsEdit);
+		};
+
 		webviewPanel.webview.onDidReceiveMessage(async (msg) => {
 			if (msg.type === 'ready') {
 				sendData();
@@ -87,93 +121,102 @@ class JsonTableEditorProvider implements vscode.CustomTextEditorProvider {
 			}
 
 			if (msg.type === 'edit') {
-				const data = JSON.parse(document.getText());
+				let text = document.getText();
+				const fmt = detectFormat(text);
+				const isArray = Array.isArray(parseJsonc(text));
 				let newVal: unknown = msg.value;
 				if (msg.valueType === 'json') {
 					try { newVal = JSON.parse(msg.value); } catch { /* keep as string */ }
 				}
-				data[msg.row][msg.col] = newVal;
-				const edit = new vscode.WorkspaceEdit();
-				edit.replace(document.uri, new vscode.Range(0, 0, document.lineCount, 0), JSON.stringify(data, null, 2));
-				await vscode.workspace.applyEdit(edit);
+				const jsPath: jsonc.JSONPath = isArray ? [msg.row, msg.col] : [msg.col];
+				await applyText(applyMod(text, jsPath, newVal, { formattingOptions: fmt }));
 			}
 
 			if (msg.type === 'addColumn') {
 				const defaults: Record<string, unknown> = {
 					string: '', number: 0, bool: false, object: {}, array: []
 				};
-				const data = JSON.parse(document.getText());
-				for (const row of data) {
-					row[msg.name] = defaults[msg.dataType] ?? null;
+				let text = document.getText();
+				const fmt = detectFormat(text);
+				const { rows, isArray } = toRows(parseJsonc(text));
+				for (let i = 0; i < rows.length; i++) {
+					const p: jsonc.JSONPath = isArray ? [i, msg.name] : [msg.name];
+					text = applyMod(text, p, defaults[msg.dataType] ?? null, { formattingOptions: fmt });
 				}
-				const edit = new vscode.WorkspaceEdit();
-				edit.replace(document.uri, new vscode.Range(0, 0, document.lineCount, 0), JSON.stringify(data, null, 2));
-				await vscode.workspace.applyEdit(edit);
+				await applyText(text);
 			}
 
 			if (msg.type === 'addRow') {
-				const data = JSON.parse(document.getText());
-				const template = data.length > 0 ? Object.fromEntries(Object.keys(data[0]).map(k => [k, ''])) : {};
-				data.push(template);
-				const edit = new vscode.WorkspaceEdit();
-				edit.replace(document.uri, new vscode.Range(0, 0, document.lineCount, 0), JSON.stringify(data, null, 2));
-				await vscode.workspace.applyEdit(edit);
+				let text = document.getText();
+				const fmt = detectFormat(text);
+				const { rows, isArray } = toRows(parseJsonc(text));
+				if (!isArray) return;
+				const template = rows.length > 0 ? Object.fromEntries(Object.keys(rows[0]).map(k => [k, ''])) : {};
+				await applyText(applyMod(text, [rows.length], template, { formattingOptions: fmt }));
 			}
 
 			if (msg.type === 'deleteColumn') {
-				const data = JSON.parse(document.getText());
-				for (const row of data) {
-					delete row[msg.name];
+				let text = document.getText();
+				const fmt = detectFormat(text);
+				const { rows, isArray } = toRows(parseJsonc(text));
+				for (let i = 0; i < rows.length; i++) {
+					const p: jsonc.JSONPath = isArray ? [i, msg.name] : [msg.name];
+					text = applyMod(text, p, undefined, { formattingOptions: fmt });
 				}
-				const edit = new vscode.WorkspaceEdit();
-				edit.replace(document.uri, new vscode.Range(0, 0, document.lineCount, 0), JSON.stringify(data, null, 2));
-				await vscode.workspace.applyEdit(edit);
+				await applyText(text);
 			}
 
 			if (msg.type === 'renameColumn') {
-				const data = JSON.parse(document.getText());
-				for (const row of data) {
-					if (Object.prototype.hasOwnProperty.call(row, msg.oldName)) {
-						const entries = Object.entries(row);
-						const idx = entries.findIndex(([k]) => k === msg.oldName);
-						entries[idx] = [msg.newName, entries[idx][1]];
-						const rebuilt: Record<string, unknown> = {};
-						for (const [k, v] of entries) rebuilt[k] = v;
-						for (const key of Object.keys(row)) delete row[key];
-						Object.assign(row, rebuilt);
-					}
+				let text = document.getText();
+				const fmt = detectFormat(text);
+				const { rows, isArray } = toRows(parseJsonc(text));
+				for (let i = 0; i < rows.length; i++) {
+					if (!Object.prototype.hasOwnProperty.call(rows[i], msg.oldName)) continue;
+					const propIndex = Object.keys(rows[i]).indexOf(msg.oldName);
+					const oldVal = rows[i][msg.oldName];
+					const pOld: jsonc.JSONPath = isArray ? [i, msg.oldName] : [msg.oldName];
+					text = applyMod(text, pOld, undefined, { formattingOptions: fmt });
+					const pNew: jsonc.JSONPath = isArray ? [i, msg.newName] : [msg.newName];
+					text = applyMod(text, pNew, oldVal, {
+						formattingOptions: fmt,
+						getInsertionIndex: (props) => Math.min(propIndex, props.length)
+					});
 				}
-				const edit = new vscode.WorkspaceEdit();
-				edit.replace(document.uri, new vscode.Range(0, 0, document.lineCount, 0), JSON.stringify(data, null, 2));
-				await vscode.workspace.applyEdit(edit);
+				await applyText(text);
 			}
 
 			if (msg.type === 'deleteRows') {
-				const data = JSON.parse(document.getText());
-				const toDelete = new Set(msg.rows as number[]);
-				const newData = data.filter((_: unknown, i: number) => !toDelete.has(i));
-				const edit = new vscode.WorkspaceEdit();
-				edit.replace(document.uri, new vscode.Range(0, 0, document.lineCount, 0), JSON.stringify(newData, null, 2));
-				await vscode.workspace.applyEdit(edit);
+				let text = document.getText();
+				const fmt = detectFormat(text);
+				const sortedDesc = [...(msg.rows as number[])].sort((a, b) => b - a);
+				for (const i of sortedDesc) {
+					text = applyMod(text, [i], undefined, { formattingOptions: fmt });
+				}
+				await applyText(text);
 			}
 
 			if (msg.type === 'duplicateRows') {
-				const data = JSON.parse(document.getText());
-				const copies = (msg.rows as number[]).map((i: number) => ({ ...data[i] }));
+				let text = document.getText();
+				const fmt = detectFormat(text);
+				const { rows } = toRows(parseJsonc(text));
+				const copies = (msg.rows as number[]).map((i: number) => ({ ...rows[i] }));
 				if (msg.mode === 'end') {
-					data.push(...copies);
+					for (const copy of copies) {
+						const currentLen = parseJsonc(text).length;
+						text = applyMod(text, [currentLen], copy, { formattingOptions: fmt });
+					}
 				} else {
 					const insertAfter = Math.max(...msg.rows as number[]);
-					data.splice(insertAfter + 1, 0, ...copies);
+					for (let j = 0; j < copies.length; j++) {
+						text = applyMod(text, [insertAfter + 1 + j], copies[j], { isArrayInsertion: true, formattingOptions: fmt });
+					}
 				}
-				const edit = new vscode.WorkspaceEdit();
-				edit.replace(document.uri, new vscode.Range(0, 0, document.lineCount, 0), JSON.stringify(data, null, 2));
-				await vscode.workspace.applyEdit(edit);
+				await applyText(text);
 			}
 
 			if (msg.type === 'getRows') {
-				const data = JSON.parse(document.getText());
-				const selected = (msg.rows as number[]).map((i: number) => data[i]);
+				const { rows } = toRows(parseJsonc(document.getText()));
+				const selected = (msg.rows as number[]).map((i: number) => rows[i]);
 				this.clipboard = selected;
 				const text = msg.format === 'array'
 					? JSON.stringify(selected, null, 2)
@@ -183,32 +226,39 @@ class JsonTableEditorProvider implements vscode.CustomTextEditorProvider {
 
 			if (msg.type === 'pasteRows') {
 				if (this.clipboard.length === 0) return;
-				const data = JSON.parse(document.getText());
+				let text = document.getText();
+				const fmt = detectFormat(text);
+				const { rows, isArray } = toRows(parseJsonc(text));
 				const toPaste = this.clipboard.map((r: unknown) => ({ ...(r as object) }));
 
-				const existingKeys = new Set<string>(data.length > 0 ? allKeys(data) : []);
+				const existingKeys = new Set<string>(rows.length > 0 ? allKeys(rows) : []);
 				const newKeys = [...new Set(toPaste.flatMap(r => Object.keys(r as object)))].filter(k => !existingKeys.has(k));
 				for (const key of newKeys) {
-					for (const row of data) row[key] = '';
+					for (let i = 0; i < rows.length; i++) {
+						const p: jsonc.JSONPath = isArray ? [i, key] : [key];
+						text = applyMod(text, p, '', { formattingOptions: fmt });
+					}
 				}
 
-				const after = Number.isFinite(msg.after) ? msg.after : data.length - 1;
-				data.splice(after + 1, 0, ...toPaste);
-				const edit = new vscode.WorkspaceEdit();
-				edit.replace(document.uri, new vscode.Range(0, 0, document.lineCount, 0), JSON.stringify(data, null, 2));
-				await vscode.workspace.applyEdit(edit);
+				const after = Number.isFinite(msg.after) ? msg.after : parseJsonc(text).length - 1;
+				for (let j = 0; j < toPaste.length; j++) {
+					text = applyMod(text, [after + 1 + j], toPaste[j], { isArrayInsertion: true, formattingOptions: fmt });
+				}
+				await applyText(text);
 			}
 
 			if (msg.type === 'cutRows') {
-				const data = JSON.parse(document.getText());
-				const selected = (msg.rows as number[]).map((i: number) => data[i]);
+				let text = document.getText();
+				const fmt = detectFormat(text);
+				const { rows } = toRows(parseJsonc(text));
+				const selected = (msg.rows as number[]).map((i: number) => rows[i]);
 				this.clipboard = selected;
 				webviewPanel.webview.postMessage({ type: 'copyToClipboard', text: JSON.stringify(selected, null, 2) });
-				const toDelete = new Set(msg.rows as number[]);
-				const newData = data.filter((_: unknown, i: number) => !toDelete.has(i));
-				const edit = new vscode.WorkspaceEdit();
-				edit.replace(document.uri, new vscode.Range(0, 0, document.lineCount, 0), JSON.stringify(newData, null, 2));
-				await vscode.workspace.applyEdit(edit);
+				const sortedDesc = [...(msg.rows as number[])].sort((a, b) => b - a);
+				for (const i of sortedDesc) {
+					text = applyMod(text, [i], undefined, { formattingOptions: fmt });
+				}
+				await applyText(text);
 			}
 		});
 
